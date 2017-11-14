@@ -28,18 +28,18 @@ class Classifier {
   public:
     Options m_options;
 
-	Driver w2v;
+    Driver w2v;
 
   public:
-	void init(const string& optionFile);
+    void init(const string& optionFile);
 
-	void prepare();
-	void train();
-	void finish();
+    void prepare();
+    void train();
+    void finish();
 
-private:
-	int parse_instance(const vector<vector<string> >& inputs, Instance& inst);
-	void get_features(const Instance& inst, vector<string>& sources, vector<string>& targets, int pos, bool clear);
+  private:
+    int parse_instance(const vector<vector<string> >& inputs, Instance& inst);
+    void get_features(const Instance& inst, vector<string>& sources, vector<string>& targets, int pos, bool clear);
 
 };
 

@@ -23,18 +23,18 @@ class basic_quark {
   public:
     typedef unordered_map<std::string, int> StringToId;
     typedef std::vector<std::string> IdToString;
-	typedef std::vector<int> IdToFreq;
+    typedef std::vector<int> IdToFreq;
 
     StringToId m_string_to_id;
     IdToString m_id_to_string;
-	IdToFreq   m_id_to_freq;
+    IdToFreq   m_id_to_freq;
     int m_size;
-	int m_max_freq;
-	long long m_allword_count;
+    int m_max_freq;
+    long long m_allword_count;
 
   protected:
-	int m_max_size;
-	int m_reduce_threshold;
+    int m_max_size;
+    int m_reduce_threshold;
 
   public:
     /**
@@ -42,9 +42,9 @@ class basic_quark {
      */
     basic_quark() {
         clear();
-		m_reduce_threshold = 1;
-		m_max_size = 2000000000;
-		//m_max_size = 100000;
+        m_reduce_threshold = 1;
+        m_max_size = 2000000000;
+        //m_max_size = 100000;
     }
 
     /**
@@ -93,22 +93,22 @@ class basic_quark {
     int add_string(const std::string& str, int freq = 1) {
         StringToId::const_iterator it = m_string_to_id.find(str);
         if (it != m_string_to_id.end()) {
-			int qid = it->second;
-			m_id_to_freq[qid] = m_id_to_freq[qid] + freq;
-			if(m_id_to_freq[qid] > m_max_freq) m_max_freq = m_id_to_freq[qid];
-			m_allword_count += freq;
+            int qid = it->second;
+            m_id_to_freq[qid] = m_id_to_freq[qid] + freq;
+            if(m_id_to_freq[qid] > m_max_freq) m_max_freq = m_id_to_freq[qid];
+            m_allword_count += freq;
             return it->second;
         } else {
             int newid = m_size;
             m_id_to_string.push_back(str);
-			m_id_to_freq.push_back(freq);
-			if(m_size == 0) m_max_freq = freq;
-			m_allword_count += freq;
+            m_id_to_freq.push_back(freq);
+            if(m_size == 0) m_max_freq = freq;
+            m_allword_count += freq;
             m_string_to_id.insert(std::pair<std::string, int>(str, newid));
             m_size++;
-			if (m_size >= m_max_size) {
-				reduce();
-			}
+            if (m_size >= m_max_size) {
+                reduce();
+            }
             return newid;
         }
     }
@@ -116,10 +116,10 @@ class basic_quark {
     void clear() {
         m_string_to_id.clear();
         m_id_to_string.clear();
-		m_id_to_freq.clear();
+        m_id_to_freq.clear();
         m_size = 0;
-		m_max_freq = 0;
-		m_allword_count = 0;
+        m_max_freq = 0;
+        m_allword_count = 0;
     }
 
     /**
@@ -151,50 +151,50 @@ class basic_quark {
             outf << m_id_to_string[i] << " " << m_id_to_freq[i] << " " << i << std::endl;
         }
     }
-	
-	void sort(vector<int>& indexes, int thread, int freqcut) const {
-		int *allIndexes = new int[m_size];
-		int *allFreqs = new int[m_size];
-		int count = 0;
-		for (int idx = 0; idx < m_size; idx++) {
-			if (m_id_to_freq[idx] <= freqcut) continue;
-			allIndexes[count] = idx;
-			allFreqs[count] = m_id_to_freq[idx];
-			count++;
-		}		
-		parallel_radix_sort::SortPairs(allFreqs, allIndexes, count, thread);
-		indexes.resize(count);
-		for (int idx = 0; idx < count; idx++) {
-			indexes[idx] = allIndexes[count - idx -1];
-		}
 
-		delete[] allIndexes;
-		delete[] allFreqs;
-	}
+    void sort(vector<int>& indexes, int thread, int freqcut) const {
+        int *allIndexes = new int[m_size];
+        int *allFreqs = new int[m_size];
+        int count = 0;
+        for (int idx = 0; idx < m_size; idx++) {
+            if (m_id_to_freq[idx] <= freqcut) continue;
+            allIndexes[count] = idx;
+            allFreqs[count] = m_id_to_freq[idx];
+            count++;
+        }
+        parallel_radix_sort::SortPairs(allFreqs, allIndexes, count, thread);
+        indexes.resize(count);
+        for (int idx = 0; idx < count; idx++) {
+            indexes[idx] = allIndexes[count - idx -1];
+        }
 
-protected:
-	void reduce() {
-		//std::cout << "Reaching max size, reducing low-frequency items" << std::endl;
-		//std::cout << "Current Size: " << m_size << std::endl;
-		StringToId tmp_string_to_id;
+        delete[] allIndexes;
+        delete[] allFreqs;
+    }
 
-#pragma omp parallel for
-		for (int idx = 0; idx < m_size; idx++) {
-			if (m_id_to_freq[idx] <= m_reduce_threshold) continue;
-			tmp_string_to_id[m_id_to_string[idx]] = m_id_to_freq[idx];
-		}
+  protected:
+    void reduce() {
+        //std::cout << "Reaching max size, reducing low-frequency items" << std::endl;
+        //std::cout << "Current Size: " << m_size << std::endl;
+        StringToId tmp_string_to_id;
 
-		clear();
+        #pragma omp parallel for
+        for (int idx = 0; idx < m_size; idx++) {
+            if (m_id_to_freq[idx] <= m_reduce_threshold) continue;
+            tmp_string_to_id[m_id_to_string[idx]] = m_id_to_freq[idx];
+        }
 
-		for (StringToId::const_iterator it = tmp_string_to_id.begin(); it != tmp_string_to_id.end(); it++) {
-			add_string(it->first, it->second);
-		}
+        clear();
 
-		//std::cout << "Remain Size: " << m_size << std::endl;
-		std::cout << "(" << m_size  << ")" << " ";
-		std::cout.flush();
-		m_reduce_threshold++;
-	}
+        for (StringToId::const_iterator it = tmp_string_to_id.begin(); it != tmp_string_to_id.end(); it++) {
+            add_string(it->first, it->second);
+        }
+
+        //std::cout << "Remain Size: " << m_size << std::endl;
+        std::cout << "(" << m_size  << ")" << " ";
+        std::cout.flush();
+        m_reduce_threshold++;
+    }
 };
 
 typedef basic_quark Alphabet;

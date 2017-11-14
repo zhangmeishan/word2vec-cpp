@@ -166,91 +166,87 @@ inline void split_bystr(const string &str, vector<string> &vec, const string &se
 }
 
 inline void split_pair_vector(const vector<pair<int, string> > &vecPair, vector<int> &vecInt, vector<string> &vecStr) {
-	int i = 0;
-	vecInt.resize(vecPair.size());
-	vecStr.resize(vecPair.size());
-	for (; i < vecPair.size(); ++i) {
-		vecInt[i] = vecPair[i].first;
-		vecStr[i] = vecPair[i].second;
-	}
+    int i = 0;
+    vecInt.resize(vecPair.size());
+    vecStr.resize(vecPair.size());
+    for (; i < vecPair.size(); ++i) {
+        vecInt[i] = vecPair[i].first;
+        vecStr[i] = vecPair[i].second;
+    }
 }
 
 inline void split_bychar(const string& str, vector<string>& vec, const char separator = ' ') {
-	//assert(vec.empty());
-	vec.clear();
-	string::size_type pos1 = 0, pos2 = 0;
-	string word;
-	while ((pos2 = str.find_first_of(separator, pos1)) != string::npos) {
-		word = str.substr(pos1, pos2 - pos1);
-		pos1 = pos2 + 1;
-		if (!word.empty())
-			vec.push_back(word);
-	}
-	word = str.substr(pos1);
-	if (!word.empty())
-		vec.push_back(word);
+    //assert(vec.empty());
+    vec.clear();
+    string::size_type pos1 = 0, pos2 = 0;
+    string word;
+    while ((pos2 = str.find_first_of(separator, pos1)) != string::npos) {
+        word = str.substr(pos1, pos2 - pos1);
+        pos1 = pos2 + 1;
+        if (!word.empty())
+            vec.push_back(word);
+    }
+    word = str.substr(pos1);
+    if (!word.empty())
+        vec.push_back(word);
 }
 
 inline void string2pair(const string& str, pair<string, string>& pairStr, const char separator = '/') {
-	string::size_type pos = str.find_last_of(separator);
-	if (pos == string::npos) {
-		string tmp = str + "";
-		clean_str(tmp);
-		pairStr.first = tmp;
-		pairStr.second = "";
-	}
-	else {
-		string tmp = str.substr(0, pos);
-		clean_str(tmp);
-		pairStr.first = tmp;
-		tmp = str.substr(pos + 1);
-		clean_str(tmp);
-		pairStr.second = tmp;
-	}
+    string::size_type pos = str.find_last_of(separator);
+    if (pos == string::npos) {
+        string tmp = str + "";
+        clean_str(tmp);
+        pairStr.first = tmp;
+        pairStr.second = "";
+    } else {
+        string tmp = str.substr(0, pos);
+        clean_str(tmp);
+        pairStr.first = tmp;
+        tmp = str.substr(pos + 1);
+        clean_str(tmp);
+        pairStr.second = tmp;
+    }
 }
 
 inline void convert_to_pair(vector<string>& vecString, vector<pair<string, string> >& vecPair) {
-	assert(vecPair.empty());
-	int size = vecString.size();
-	string::size_type cur;
-	string strWord, strPos;
-	for (int i = 0; i < size; ++i) {
-		cur = vecString[i].find('/');
+    assert(vecPair.empty());
+    int size = vecString.size();
+    string::size_type cur;
+    string strWord, strPos;
+    for (int i = 0; i < size; ++i) {
+        cur = vecString[i].find('/');
 
-		if (cur == string::npos) {
-			strWord = vecString[i].substr(0);
-			strPos = "";
-		}
-		else if (cur == vecString[i].size() - 1) {
-			strWord = vecString[i].substr(0, cur);
-			strPos = "";
-		}
-		else {
-			strWord = vecString[i].substr(0, cur);
-			strPos = vecString[i].substr(cur + 1);
-		}
+        if (cur == string::npos) {
+            strWord = vecString[i].substr(0);
+            strPos = "";
+        } else if (cur == vecString[i].size() - 1) {
+            strWord = vecString[i].substr(0, cur);
+            strPos = "";
+        } else {
+            strWord = vecString[i].substr(0, cur);
+            strPos = vecString[i].substr(cur + 1);
+        }
 
-		vecPair.push_back(pair<string, string>(strWord, strPos));
-	}
+        vecPair.push_back(pair<string, string>(strWord, strPos));
+    }
 }
 
 inline void split_to_pair(const string& str, vector<pair<string, string> >& vecPair) {
-	assert(vecPair.empty());
-	vector<string> vec;
-	split_bychar(str, vec);
-	convert_to_pair(vec, vecPair);
+    assert(vecPair.empty());
+    vector<string> vec;
+    split_bychar(str, vec);
+    convert_to_pair(vec, vecPair);
 }
 
 inline void chomp(string& str) {
-	string white = " \t\n";
-	string::size_type pos1 = str.find_first_not_of(white);
-	string::size_type pos2 = str.find_last_not_of(white);
-	if (pos1 == string::npos || pos2 == string::npos) {
-		str = "";
-	}
-	else {
-		str = str.substr(pos1, pos2 - pos1 + 1);
-	}
+    string white = " \t\n";
+    string::size_type pos1 = str.find_first_not_of(white);
+    string::size_type pos2 = str.find_last_not_of(white);
+    if (pos1 == string::npos || pos2 == string::npos) {
+        str = "";
+    } else {
+        str = str.substr(pos1, pos2 - pos1 + 1);
+    }
 }
 
 

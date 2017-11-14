@@ -46,7 +46,7 @@ class Pipe {
         return pInstance;
     }
 
-	/* one example for reading
+    /* one example for reading
     void readInstances(const string& m_strInFile, vector<Instance>& vecInstances, int maxInstance = -1) {
         vecInstances.clear();
         initInputFile(m_strInFile.c_str());
@@ -74,8 +74,8 @@ class Pipe {
         cout << endl;
         cout << "instance num: " << numInstance << endl;
     }
-	*/
-	
+    */
+
   public:
     int max_sentense_size;
 

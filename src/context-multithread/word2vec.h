@@ -29,15 +29,15 @@ class Classifier {
     Options m_options;
     Pipe m_pipe;
 
-	Model w2v;
+    Model w2v;
 
   public:
     void extractFeat();
-	void init(const string& optionFile);
+    void init(const string& optionFile);
 
-	void prepare();
-	void train();
-	void train(int threads);
+    void prepare();
+    void train();
+    void train(int threads);
 
 };
 

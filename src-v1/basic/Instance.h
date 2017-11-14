@@ -18,7 +18,7 @@ class Instance {
     void allocate(int length, int item) {
         clear();
         m_words.resize(length);
-		resizeVec(m_labels, length, item);
+        resizeVec(m_labels, length, item);
     }
   public:
     vector<string> m_words;

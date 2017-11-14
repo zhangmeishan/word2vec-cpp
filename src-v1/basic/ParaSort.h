@@ -46,29 +46,29 @@ namespace utility {
 // Return the number of threads that would be executed in parallel regions
 int GetMaxThreads() {
 #ifdef _OPENMP
-  return omp_get_max_threads();
+    return omp_get_max_threads();
 #else
-  return 1;
+    return 1;
 #endif
 }
 
 // Set the number of threads that would be executed in parallel regions
 void SetNumThreads(int num_threads) {
 #ifdef _OPENMP
-  omp_set_num_threads(num_threads);
+    omp_set_num_threads(num_threads);
 #else
-  if (num_threads != 1) {
-    assert(!"compile with -fopenmp");
-  }
+    if (num_threads != 1) {
+        assert(!"compile with -fopenmp");
+    }
 #endif
 }
 
 // Return the thread number, which lies in [0, the number of threads)
 int GetThreadId() {
 #ifdef _OPENMP
-  return omp_get_thread_num();
+    return omp_get_thread_num();
 #else
-  return 0;
+    return 0;
 #endif
 }
 }  // namespace utility
@@ -81,54 +81,54 @@ const size_t kOutBufferSize = 32;
 template<typename PlainType, typename UnsignedType, typename Encoder,
          typename ValueManager, int Base>
 class ParallelRadixSortInternal {
-public:
-  ParallelRadixSortInternal();
-  ~ParallelRadixSortInternal();
+  public:
+    ParallelRadixSortInternal();
+    ~ParallelRadixSortInternal();
 
-  void Init(size_t max_elems, int max_threads);
+    void Init(size_t max_elems, int max_threads);
 
-  PlainType *Sort(PlainType *data, size_t num_elems, int num_threads,
-                  ValueManager *value_manager);
+    PlainType *Sort(PlainType *data, size_t num_elems, int num_threads,
+                    ValueManager *value_manager);
 
-  static void InitAndSort(PlainType *data, size_t num_elems, int num_threads,
-                          ValueManager *value_manager);
-private:
-  size_t max_elems_;
-  int max_threads_;
+    static void InitAndSort(PlainType *data, size_t num_elems, int num_threads,
+                            ValueManager *value_manager);
+  private:
+    size_t max_elems_;
+    int max_threads_;
 
-  UnsignedType *tmp_;
-  size_t **histo_;
-  UnsignedType ***out_buf_;
-  size_t **out_buf_n_;
+    UnsignedType *tmp_;
+    size_t **histo_;
+    UnsignedType ***out_buf_;
+    size_t **out_buf_n_;
 
-  int num_threads_;
-  size_t *pos_bgn_, *pos_end_;
-  ValueManager *value_manager_;
+    int num_threads_;
+    size_t *pos_bgn_, *pos_end_;
+    ValueManager *value_manager_;
 
-  void DeleteAll();
+    void DeleteAll();
 
-  UnsignedType *SortInternal(UnsignedType *data, size_t num_elems,
-                             int num_threads, ValueManager *value_manager);
+    UnsignedType *SortInternal(UnsignedType *data, size_t num_elems,
+                               int num_threads, ValueManager *value_manager);
 
-  // Compute |pos_bgn_| and |pos_end_| (associated ranges for each threads)
-  void ComputeRanges(size_t num_elems);
+    // Compute |pos_bgn_| and |pos_end_| (associated ranges for each threads)
+    void ComputeRanges(size_t num_elems);
 
-  // First step of each iteration of sorting
-  // Compute the histogram of |src| using bits in [b, b + Base)
-  void ComputeHistogram(int b, UnsignedType *src);
+    // First step of each iteration of sorting
+    // Compute the histogram of |src| using bits in [b, b + Base)
+    void ComputeHistogram(int b, UnsignedType *src);
 
-  // Second step of each iteration of sorting
-  // Scatter elements of |src| to |dst| using the histogram
-  void Scatter(int b, UnsignedType *src, UnsignedType *dst);
+    // Second step of each iteration of sorting
+    // Scatter elements of |src| to |dst| using the histogram
+    void Scatter(int b, UnsignedType *src, UnsignedType *dst);
 };
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
          typename ValueManager, int Base>
 ParallelRadixSortInternal<PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::ParallelRadixSortInternal()
-  : max_elems_(0), max_threads_(0), tmp_(NULL), histo_(NULL),
-    out_buf_(NULL), out_buf_n_(NULL), pos_bgn_(NULL), pos_end_(NULL) {
-  assert(sizeof(PlainType) == sizeof(UnsignedType));
+    : max_elems_(0), max_threads_(0), tmp_(NULL), histo_(NULL),
+      out_buf_(NULL), out_buf_n_(NULL), pos_bgn_(NULL), pos_end_(NULL) {
+    assert(sizeof(PlainType) == sizeof(UnsignedType));
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -136,7 +136,7 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::~ParallelRadixSortInternal() {
-  DeleteAll();
+    DeleteAll();
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -144,31 +144,31 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::DeleteAll() {
-  delete [] tmp_;
-  tmp_ = NULL;
+    delete [] tmp_;
+    tmp_ = NULL;
 
-  for (int i = 0; i < max_threads_; ++i) delete [] histo_[i];
-  delete [] histo_;
-  histo_ = NULL;
+    for (int i = 0; i < max_threads_; ++i) delete [] histo_[i];
+    delete [] histo_;
+    histo_ = NULL;
 
-  for (int i = 0; i < max_threads_; ++i) {
-    for (size_t j = 0; j < 1 << Base; ++j) {
-      delete [] out_buf_[i][j];
+    for (int i = 0; i < max_threads_; ++i) {
+        for (size_t j = 0; j < 1 << Base; ++j) {
+            delete [] out_buf_[i][j];
+        }
+        delete [] out_buf_n_[i];
+        delete [] out_buf_[i];
     }
-    delete [] out_buf_n_[i];
-    delete [] out_buf_[i];
-  }
-  delete [] out_buf_;
-  delete [] out_buf_n_;
-  out_buf_ = NULL;
-  out_buf_n_ = NULL;
+    delete [] out_buf_;
+    delete [] out_buf_n_;
+    out_buf_ = NULL;
+    out_buf_n_ = NULL;
 
-  delete [] pos_bgn_;
-  delete [] pos_end_;
-  pos_bgn_ = pos_end_ = NULL;
+    delete [] pos_bgn_;
+    delete [] pos_end_;
+    pos_bgn_ = pos_end_ = NULL;
 
-  max_elems_ = 0;
-  max_threads_ = 0;
+    max_elems_ = 0;
+    max_threads_ = 0;
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -176,34 +176,34 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::Init(size_t max_elems, int max_threads) {
-  DeleteAll();
+    DeleteAll();
 
-  max_elems_ = max_elems;
+    max_elems_ = max_elems;
 
-  if (max_threads == -1) {
-    max_threads = utility::GetMaxThreads();
-  }
-  assert(max_threads >= 1);
-  max_threads_ = max_threads;
-
-  tmp_ = new UnsignedType[max_elems];
-  histo_ = new size_t*[max_threads];
-  for (int i = 0; i < max_threads; ++i) {
-    histo_[i] = new size_t[1 << Base];
-  }
-
-  out_buf_ = new UnsignedType**[max_threads];
-  out_buf_n_ = new size_t*[max_threads];
-  for (int i = 0; i < max_threads; ++i) {
-    out_buf_[i] = new UnsignedType*[1 << Base];
-    out_buf_n_[i] = new size_t[1 << Base];
-    for (size_t j = 0; j < 1 << Base; ++j) {
-      out_buf_[i][j] = new UnsignedType[kOutBufferSize];
+    if (max_threads == -1) {
+        max_threads = utility::GetMaxThreads();
     }
-  }
+    assert(max_threads >= 1);
+    max_threads_ = max_threads;
 
-  pos_bgn_ = new size_t[max_threads];
-  pos_end_ = new size_t[max_threads];
+    tmp_ = new UnsignedType[max_elems];
+    histo_ = new size_t*[max_threads];
+    for (int i = 0; i < max_threads; ++i) {
+        histo_[i] = new size_t[1 << Base];
+    }
+
+    out_buf_ = new UnsignedType**[max_threads];
+    out_buf_n_ = new size_t*[max_threads];
+    for (int i = 0; i < max_threads; ++i) {
+        out_buf_[i] = new UnsignedType*[1 << Base];
+        out_buf_n_[i] = new size_t[1 << Base];
+        for (size_t j = 0; j < 1 << Base; ++j) {
+            out_buf_[i][j] = new UnsignedType[kOutBufferSize];
+        }
+    }
+
+    pos_bgn_ = new size_t[max_threads];
+    pos_end_ = new size_t[max_threads];
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -212,9 +212,9 @@ PlainType *ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::Sort(PlainType *data, size_t num_elems,
        int num_threads, ValueManager *value_manager) {
-  UnsignedType *src = reinterpret_cast<UnsignedType*>(data);
-  UnsignedType *res = SortInternal(src, num_elems, num_threads, value_manager);
-  return reinterpret_cast<PlainType*>(res);
+    UnsignedType *src = reinterpret_cast<UnsignedType*>(data);
+    UnsignedType *res = SortInternal(src, num_elems, num_threads, value_manager);
+    return reinterpret_cast<PlainType*>(res);
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -223,12 +223,12 @@ void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::InitAndSort(PlainType *data, size_t num_elems,
               int num_threads, ValueManager *value_manager) {
-  ParallelRadixSortInternal prs;
-  prs.Init(num_elems, num_threads);
-  const PlainType *res = prs.Sort(data, num_elems, num_threads, value_manager);
-  if (res != data) {
-    for (size_t i = 0; i < num_elems; ++i) data[i] = res[i];
-  }
+    ParallelRadixSortInternal prs;
+    prs.Init(num_elems, num_threads);
+    const PlainType *res = prs.Sort(data, num_elems, num_threads, value_manager);
+    if (res != data) {
+        for (size_t i = 0; i < num_elems; ++i) data[i] = res[i];
+    }
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -237,33 +237,33 @@ UnsignedType *ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::SortInternal(UnsignedType *data, size_t num_elems,
                int num_threads, ValueManager *value_manager) {
-  assert(num_elems <= max_elems_);
+    assert(num_elems <= max_elems_);
 
-  if (num_threads == -1) {
-    num_threads = utility::GetMaxThreads();
-  }
-  assert(1 <= num_threads && num_threads <= max_threads_);
-  utility::SetNumThreads(num_threads);
-  assert(utility::GetMaxThreads() == num_threads);
-  num_threads_ = num_threads;
+    if (num_threads == -1) {
+        num_threads = utility::GetMaxThreads();
+    }
+    assert(1 <= num_threads && num_threads <= max_threads_);
+    utility::SetNumThreads(num_threads);
+    assert(utility::GetMaxThreads() == num_threads);
+    num_threads_ = num_threads;
 
-  value_manager_ = value_manager;
+    value_manager_ = value_manager;
 
-  // Compute |pos_bgn_| and |pos_end_|
-  ComputeRanges(num_elems);
+    // Compute |pos_bgn_| and |pos_end_|
+    ComputeRanges(num_elems);
 
-  // Iterate from lower bits to higher bits
-  const int bits = CHAR_BIT * sizeof(UnsignedType);
-  UnsignedType *src = data, *dst = tmp_;
-  for (int b = 0; b < bits; b += Base) {
-    ComputeHistogram(b, src);
-    Scatter(b, src, dst);
+    // Iterate from lower bits to higher bits
+    const int bits = CHAR_BIT * sizeof(UnsignedType);
+    UnsignedType *src = data, *dst = tmp_;
+    for (int b = 0; b < bits; b += Base) {
+        ComputeHistogram(b, src);
+        Scatter(b, src, dst);
 
-    std::swap(src, dst);
-    value_manager->Next();
-  }
+        std::swap(src, dst);
+        value_manager->Next();
+    }
 
-  return src;
+    return src;
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -271,12 +271,12 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::ComputeRanges(size_t num_elems) {
-  pos_bgn_[0] = 0;
-  for (int i = 0; i < num_threads_ - 1; ++i) {
-    const size_t t = (num_elems - pos_bgn_[i]) / (num_threads_ - i);
-    pos_bgn_[i + 1] = pos_end_[i] = pos_bgn_[i] + t;
-  }
-  pos_end_[num_threads_ - 1] = num_elems;
+    pos_bgn_[0] = 0;
+    for (int i = 0; i < num_threads_ - 1; ++i) {
+        const size_t t = (num_elems - pos_bgn_[i]) / (num_threads_ - i);
+        pos_bgn_[i + 1] = pos_end_[i] = pos_bgn_[i] + t;
+    }
+    pos_end_[num_threads_ - 1] = num_elems;
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -284,33 +284,33 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::ComputeHistogram(int b, UnsignedType *src) {
-  // Compute local histogram
-  #ifdef _OPENMP
-  #pragma omp parallel
-  #endif
-  {
-    const int my_id = utility::GetThreadId();
-    const size_t my_bgn = pos_bgn_[my_id];
-    const size_t my_end = pos_end_[my_id];
-    size_t *my_histo = histo_[my_id];
+    // Compute local histogram
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
+    {
+        const int my_id = utility::GetThreadId();
+        const size_t my_bgn = pos_bgn_[my_id];
+        const size_t my_end = pos_end_[my_id];
+        size_t *my_histo = histo_[my_id];
 
-    memset(my_histo, 0, sizeof(size_t) * (1 << Base));
-    for (size_t i = my_bgn; i < my_end; ++i) {
-      const UnsignedType s = Encoder::encode(src[i]);
-      const UnsignedType t = (s >> b) & ((1 << Base) - 1);
-      ++my_histo[t];
+        memset(my_histo, 0, sizeof(size_t) * (1 << Base));
+        for (size_t i = my_bgn; i < my_end; ++i) {
+            const UnsignedType s = Encoder::encode(src[i]);
+            const UnsignedType t = (s >> b) & ((1 << Base) - 1);
+            ++my_histo[t];
+        }
     }
-  }
 
-  // Compute global histogram
-  size_t s = 0;
-  for (size_t i = 0; i < 1 << Base; ++i) {
-    for (int j = 0; j < num_threads_; ++j) {
-      const size_t t = s + histo_[j][i];
-      histo_[j][i] = s;
-      s = t;
+    // Compute global histogram
+    size_t s = 0;
+    for (size_t i = 0; i < 1 << Base; ++i) {
+        for (int j = 0; j < num_threads_; ++j) {
+            const size_t t = s + histo_[j][i];
+            histo_[j][i] = s;
+            s = t;
+        }
     }
-  }
 }
 
 template<typename PlainType, typename UnsignedType, typename Encoder,
@@ -318,46 +318,46 @@ template<typename PlainType, typename UnsignedType, typename Encoder,
 void ParallelRadixSortInternal
 <PlainType, UnsignedType, Encoder, ValueManager, Base>
 ::Scatter(int b, UnsignedType *src, UnsignedType *dst) {
-  #ifdef _OPENMP
-  #pragma omp parallel
-  #endif
-  {
-    const int my_id = utility::GetThreadId();
-    const size_t my_bgn = pos_bgn_[my_id];
-    const size_t my_end = pos_end_[my_id];
-    size_t *my_histo = histo_[my_id];
-    UnsignedType **my_buf = out_buf_[my_id];
-    size_t *my_buf_n = out_buf_n_[my_id];
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
+    {
+        const int my_id = utility::GetThreadId();
+        const size_t my_bgn = pos_bgn_[my_id];
+        const size_t my_end = pos_end_[my_id];
+        size_t *my_histo = histo_[my_id];
+        UnsignedType **my_buf = out_buf_[my_id];
+        size_t *my_buf_n = out_buf_n_[my_id];
 
-    memset(my_buf_n, 0, sizeof(size_t) * (1 << Base));
-    for (size_t i = my_bgn; i < my_end; ++i) {
-      const UnsignedType s = Encoder::encode(src[i]);
-      const UnsignedType t = (s >> b) & ((1 << Base) - 1);
-      my_buf[t][my_buf_n[t]] = src[i];
-      value_manager_->Push(my_id, t, my_buf_n[t], i);
-      ++my_buf_n[t];
+        memset(my_buf_n, 0, sizeof(size_t) * (1 << Base));
+        for (size_t i = my_bgn; i < my_end; ++i) {
+            const UnsignedType s = Encoder::encode(src[i]);
+            const UnsignedType t = (s >> b) & ((1 << Base) - 1);
+            my_buf[t][my_buf_n[t]] = src[i];
+            value_manager_->Push(my_id, t, my_buf_n[t], i);
+            ++my_buf_n[t];
 
-      if (my_buf_n[t] == kOutBufferSize) {
-        size_t p = my_histo[t];
-        for (size_t j = 0; j < kOutBufferSize; ++j) {
-          dst[p++] = my_buf[t][j];
+            if (my_buf_n[t] == kOutBufferSize) {
+                size_t p = my_histo[t];
+                for (size_t j = 0; j < kOutBufferSize; ++j) {
+                    dst[p++] = my_buf[t][j];
+                }
+                value_manager_->Flush(my_id, t, kOutBufferSize, my_histo[t]);
+
+                my_histo[t] += kOutBufferSize;
+                my_buf_n[t] = 0;
+            }
         }
-        value_manager_->Flush(my_id, t, kOutBufferSize, my_histo[t]);
 
-        my_histo[t] += kOutBufferSize;
-        my_buf_n[t] = 0;
-      }
+        // Flush everything
+        for (size_t i = 0; i < 1 << Base; ++i) {
+            size_t p = my_histo[i];
+            for (size_t j = 0; j < my_buf_n[i]; ++j) {
+                dst[p++] = my_buf[i][j];
+            }
+            value_manager_->Flush(my_id, i, my_buf_n[i], my_histo[i]);
+        }
     }
-
-    // Flush everything
-    for (size_t i = 0; i < 1 << Base; ++i) {
-      size_t p = my_histo[i];
-      for (size_t j = 0; j < my_buf_n[i]; ++j) {
-        dst[p++] = my_buf[i][j];
-      }
-      value_manager_->Flush(my_id, i, my_buf_n[i], my_histo[i]);
-    }
-  }
 }
 }  // namespace internal
 
@@ -365,30 +365,30 @@ void ParallelRadixSortInternal
 // to correctly ordered unsigned integers
 namespace encoder {
 class EncoderUnsigned {
-public:
-  template<typename UnsignedType>
-  inline static UnsignedType encode(UnsignedType x) {
-    return x;
-  }
+  public:
+    template<typename UnsignedType>
+    inline static UnsignedType encode(UnsignedType x) {
+        return x;
+    }
 };
 
 class EncoderSigned {
-public:
-  template<typename UnsignedType>
-  inline static UnsignedType encode(UnsignedType x) {
-    return x ^ (UnsignedType(1) << (CHAR_BIT * sizeof(UnsignedType) - 1));
-  }
+  public:
+    template<typename UnsignedType>
+    inline static UnsignedType encode(UnsignedType x) {
+        return x ^ (UnsignedType(1) << (CHAR_BIT * sizeof(UnsignedType) - 1));
+    }
 };
 
 class EncoderDecimal {
-public:
-  template<typename UnsignedType>
-  inline static UnsignedType encode(UnsignedType x) {
-    static const int bits = CHAR_BIT * sizeof(UnsignedType);
-    const UnsignedType a = x >> (bits - 1);
-    const UnsignedType b = (-a) | (UnsignedType(1) << (bits - 1));
-    return x ^ b;
-  }
+  public:
+    template<typename UnsignedType>
+    inline static UnsignedType encode(UnsignedType x) {
+        static const int bits = CHAR_BIT * sizeof(UnsignedType);
+        const UnsignedType a = x >> (bits - 1);
+        const UnsignedType b = (-a) | (UnsignedType(1) << (bits - 1));
+        return x ^ b;
+    }
 };
 }  // namespace encoder
 
@@ -396,119 +396,119 @@ public:
 // to sorting of keys and sorting of pairs
 namespace value_manager {
 class DummyValueManager {
-public:
-/*
-  inline void Push(int thread __attribute__((unused)),
-                   size_t bucket __attribute__((unused)),
-                   size_t num __attribute__((unused)),
-                   size_t from_pos __attribute__((unused))) {}
+  public:
+    /*
+      inline void Push(int thread __attribute__((unused)),
+                       size_t bucket __attribute__((unused)),
+                       size_t num __attribute__((unused)),
+                       size_t from_pos __attribute__((unused))) {}
 
-  inline void Flush(int thread __attribute__((unused)),
-                    size_t bucket __attribute__((unused)),
-                    size_t num __attribute__((unused)),
-                    size_t to_pos __attribute__((unused))) {}
-*/
-	inline void Push(int thread ,
-		size_t bucket,
-		size_t num,
-		size_t from_pos) {}
+      inline void Flush(int thread __attribute__((unused)),
+                        size_t bucket __attribute__((unused)),
+                        size_t num __attribute__((unused)),
+                        size_t to_pos __attribute__((unused))) {}
+    */
+    inline void Push(int thread,
+                     size_t bucket,
+                     size_t num,
+                     size_t from_pos) {}
 
-	inline void Flush(int thread,
-		size_t bucket,
-		size_t num,
-		size_t to_pos) {}
-  void Next() {}
+    inline void Flush(int thread,
+                      size_t bucket,
+                      size_t num,
+                      size_t to_pos) {}
+    void Next() {}
 };
 
 template<typename ValueType, int Base> class PairValueManager {
-public:
-  PairValueManager()
-    : max_elems_(0), max_threads_(0), original_(NULL), tmp_(NULL),
-      src_(NULL), dst_(NULL), out_buf_(NULL) {}
+  public:
+    PairValueManager()
+        : max_elems_(0), max_threads_(0), original_(NULL), tmp_(NULL),
+          src_(NULL), dst_(NULL), out_buf_(NULL) {}
 
-  ~PairValueManager() {
-    DeleteAll();
-  }
-
-  void Init(size_t max_elems, int max_threads);
-
-  void Start(ValueType *original, size_t num_elems, int num_threads) {
-    assert(num_elems <= max_elems_);
-    assert(num_threads <= max_threads_);
-    src_ = original_ = original;
-    dst_ = tmp_;
-  }
-
-  inline void Push(int thread, size_t bucket, size_t num, size_t from_pos) {
-    out_buf_[thread][bucket][num] = src_[from_pos];
-  }
-
-  inline void Flush(int thread, size_t bucket, size_t num, size_t to_pos) {
-    for (size_t i = 0; i < num; ++i) {
-      dst_[to_pos++] = out_buf_[thread][bucket][i];
+    ~PairValueManager() {
+        DeleteAll();
     }
-  }
 
-  void Next() {
-    std::swap(src_, dst_);
-  }
+    void Init(size_t max_elems, int max_threads);
 
-  ValueType *GetResult() {
-    return src_;
-  }
-private:
-  size_t max_elems_;
-  int max_threads_;
+    void Start(ValueType *original, size_t num_elems, int num_threads) {
+        assert(num_elems <= max_elems_);
+        assert(num_threads <= max_threads_);
+        src_ = original_ = original;
+        dst_ = tmp_;
+    }
 
-  static const size_t kOutBufferSize = internal::kOutBufferSize;
-  ValueType *original_, *tmp_;
-  ValueType *src_, *dst_;
-  ValueType ***out_buf_;
+    inline void Push(int thread, size_t bucket, size_t num, size_t from_pos) {
+        out_buf_[thread][bucket][num] = src_[from_pos];
+    }
 
-  void DeleteAll();
+    inline void Flush(int thread, size_t bucket, size_t num, size_t to_pos) {
+        for (size_t i = 0; i < num; ++i) {
+            dst_[to_pos++] = out_buf_[thread][bucket][i];
+        }
+    }
+
+    void Next() {
+        std::swap(src_, dst_);
+    }
+
+    ValueType *GetResult() {
+        return src_;
+    }
+  private:
+    size_t max_elems_;
+    int max_threads_;
+
+    static const size_t kOutBufferSize = internal::kOutBufferSize;
+    ValueType *original_, *tmp_;
+    ValueType *src_, *dst_;
+    ValueType ***out_buf_;
+
+    void DeleteAll();
 };
 
 template<typename ValueType, int Base>
 void PairValueManager<ValueType, Base>
 ::Init(size_t max_elems, int max_threads) {
-  if (max_threads == -1) {
-    max_threads = utility::GetMaxThreads();
-  }
-  assert(max_threads >= 1);
-
-  DeleteAll();
-
-  max_elems_ = max_elems;
-  max_threads_ = max_threads;
-
-  tmp_ = new ValueType[max_elems];
-
-  out_buf_ = new ValueType**[max_threads];
-  for (int i = 0; i < max_threads; ++i) {
-    out_buf_[i] = new ValueType*[1 << Base];
-    for (size_t j = 0; j < 1 << Base; ++j) {
-      out_buf_[i][j] = new ValueType[kOutBufferSize];
+    if (max_threads == -1) {
+        max_threads = utility::GetMaxThreads();
     }
-  }
+    assert(max_threads >= 1);
+
+    DeleteAll();
+
+    max_elems_ = max_elems;
+    max_threads_ = max_threads;
+
+    tmp_ = new ValueType[max_elems];
+
+    out_buf_ = new ValueType**[max_threads];
+    for (int i = 0; i < max_threads; ++i) {
+        out_buf_[i] = new ValueType*[1 << Base];
+        for (size_t j = 0; j < 1 << Base; ++j) {
+            out_buf_[i][j] = new ValueType[kOutBufferSize];
+        }
+    }
 }
 
 template<typename ValueType, int Base>
 void PairValueManager<ValueType, Base>
 ::DeleteAll() {
-  delete [] tmp_;
-  tmp_ = NULL;
+    delete [] tmp_;
+    tmp_ = NULL;
 
-  for (int i = 0; i < max_threads_; ++i) {
-    for (size_t j = 0; j < 1 << Base; ++j) {
-      delete [] out_buf_[i][j];
+    for (int i = 0; i < max_threads_; ++i) {
+        for (size_t j = 0; j < 1 << Base; ++j) {
+            delete [] out_buf_[i][j];
+        }
+        delete [] out_buf_[i];
     }
-    delete [] out_buf_[i];
-  }
-  delete [] out_buf_;
-  out_buf_ = NULL;
+    delete [] out_buf_;
+    out_buf_ = NULL;
 
-  max_elems_ = 0;
-  max_threads_ = 0;
+    max_elems_ = 0;
+    max_threads_ = 0;
 }
 }  // namespace value_manager
 
@@ -516,30 +516,30 @@ void PairValueManager<ValueType, Base>
 template<typename PlainType, typename UnsignedType = PlainType,
          typename Encoder = encoder::EncoderUnsigned, int Base = 8>
 class KeySort {
-  typedef value_manager::DummyValueManager DummyValueManager;
-  typedef internal::ParallelRadixSortInternal
-  <PlainType, UnsignedType, Encoder, DummyValueManager, Base> Internal;
+    typedef value_manager::DummyValueManager DummyValueManager;
+    typedef internal::ParallelRadixSortInternal
+    <PlainType, UnsignedType, Encoder, DummyValueManager, Base> Internal;
 
-public:
-  // In the following functions, when |max_threads| or |num_threads| is -1,
-  // the default value given by OpenMP would be used.
-  void Init(size_t max_elems, int max_threads = -1) {
-    internal_.Init(max_elems, max_threads);
-  }
+  public:
+    // In the following functions, when |max_threads| or |num_threads| is -1,
+    // the default value given by OpenMP would be used.
+    void Init(size_t max_elems, int max_threads = -1) {
+        internal_.Init(max_elems, max_threads);
+    }
 
-  // Notice that the pointer returned by this
-  // does not necessarily equal to |data|.
-  PlainType *Sort(PlainType *data, size_t num_elems, int num_threads = -1) {
-    return internal_.Sort(data, num_elems, num_threads, &dummy_value_manager_);
-  }
+    // Notice that the pointer returned by this
+    // does not necessarily equal to |data|.
+    PlainType *Sort(PlainType *data, size_t num_elems, int num_threads = -1) {
+        return internal_.Sort(data, num_elems, num_threads, &dummy_value_manager_);
+    }
 
-  static void InitAndSort(PlainType *data, size_t num_elems, int num_threads = -1) {
-    DummyValueManager dvm;
-    Internal::InitAndSort(data, num_elems, num_threads, &dvm);
-  }
-private:
-  Internal internal_;
-  DummyValueManager dummy_value_manager_;
+    static void InitAndSort(PlainType *data, size_t num_elems, int num_threads = -1) {
+        DummyValueManager dvm;
+        Internal::InitAndSort(data, num_elems, num_threads, &dvm);
+    }
+  private:
+    Internal internal_;
+    DummyValueManager dummy_value_manager_;
 };
 
 // Frontend class for sorting pairs
@@ -548,45 +548,45 @@ template<typename PlainType, typename ValueType,
          typename Encoder = encoder::EncoderUnsigned,
          int Base = 8>
 class PairSort {
-  typedef value_manager::PairValueManager
-  <ValueType, Base> ValueManager;
-  typedef internal::ParallelRadixSortInternal
-  <PlainType, UnsignedType, Encoder, ValueManager, Base> Internal;
+    typedef value_manager::PairValueManager
+    <ValueType, Base> ValueManager;
+    typedef internal::ParallelRadixSortInternal
+    <PlainType, UnsignedType, Encoder, ValueManager, Base> Internal;
 
-public:
-  // In the following functions, when |max_threads| or |num_threads| is -1,
-  // the default value given by OpenMP would be used.
-  void Init(size_t max_elems, int max_threads = -1) {
-    internal_.Init(max_elems, max_threads);
-    value_manager_.Init(max_elems, max_threads);
-  }
-
-  // Notice that the pointers returned by this
-  // do not necessarily equal to |keys| and |vals|.
-  std::pair<PlainType*, ValueType*> Sort(PlainType *keys, ValueType *vals,
-                                         size_t num_elems, int num_threads = -1) {
-    value_manager_.Start(vals, num_elems, num_threads);
-    PlainType *res_keys = internal_.Sort(keys, num_elems, num_threads, &value_manager_);
-    ValueType *res_vals = value_manager_.GetResult();
-    return std::make_pair(res_keys, res_vals);
-  }
-
-  static void InitAndSort(PlainType *keys, ValueType *vals,
-                          size_t num_elems, int num_threads = -1) {
-    ValueManager vm;
-    vm.Init(num_elems, num_threads);
-    vm.Start(vals, num_elems, num_threads);
-    Internal::InitAndSort(keys, num_elems, num_threads, &vm);
-    ValueType *res_vals = vm.GetResult();
-    if (res_vals != vals) {
-      for (size_t i = 0; i < num_elems; ++i) {
-        vals[i] = res_vals[i];
-      }
+  public:
+    // In the following functions, when |max_threads| or |num_threads| is -1,
+    // the default value given by OpenMP would be used.
+    void Init(size_t max_elems, int max_threads = -1) {
+        internal_.Init(max_elems, max_threads);
+        value_manager_.Init(max_elems, max_threads);
     }
-  }
-private:
-  Internal internal_;
-  ValueManager value_manager_;
+
+    // Notice that the pointers returned by this
+    // do not necessarily equal to |keys| and |vals|.
+    std::pair<PlainType*, ValueType*> Sort(PlainType *keys, ValueType *vals,
+                                           size_t num_elems, int num_threads = -1) {
+        value_manager_.Start(vals, num_elems, num_threads);
+        PlainType *res_keys = internal_.Sort(keys, num_elems, num_threads, &value_manager_);
+        ValueType *res_vals = value_manager_.GetResult();
+        return std::make_pair(res_keys, res_vals);
+    }
+
+    static void InitAndSort(PlainType *keys, ValueType *vals,
+                            size_t num_elems, int num_threads = -1) {
+        ValueManager vm;
+        vm.Init(num_elems, num_threads);
+        vm.Start(vals, num_elems, num_threads);
+        Internal::InitAndSort(keys, num_elems, num_threads, &vm);
+        ValueType *res_vals = vm.GetResult();
+        if (res_vals != vals) {
+            for (size_t i = 0; i < num_elems; ++i) {
+                vals[i] = res_vals[i];
+            }
+        }
+    }
+  private:
+    Internal internal_;
+    ValueManager value_manager_;
 };
 
 #define TYPE_CASE(plain_type, unsigned_type, encoder_type)           \
@@ -615,12 +615,12 @@ TYPE_CASE(double, uint64_t, Decimal);
 
 template<typename KeyType>
 void SortKeys(KeyType *data, size_t num_elems, int num_threads = -1) {
-  KeySort<KeyType>::InitAndSort(data, num_elems, num_threads);
+    KeySort<KeyType>::InitAndSort(data, num_elems, num_threads);
 }
 
 template<typename KeyType, typename ValueType>
 void SortPairs(KeyType *keys, ValueType *vals, size_t num_elems, int num_threads = -1) {
-  PairSort<KeyType, ValueType>::InitAndSort(keys, vals, num_elems, num_threads);
+    PairSort<KeyType, ValueType>::InitAndSort(keys, vals, num_elems, num_threads);
 }
 };  // namespace parallel radix sort
 
