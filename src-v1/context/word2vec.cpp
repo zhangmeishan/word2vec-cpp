@@ -9,6 +9,7 @@
 #include <chrono>
 #include <omp.h>
 #include "Argument_helper.h"
+#include "FastIO.h"
 
 Classifier::Classifier() {
     // TODO Auto-generated constructor stub
@@ -34,7 +35,8 @@ void Classifier::prepare() {
 	//step 1
 	std::cout << "Starting creating vocabularies...." << std::endl;
 	auto start_time = std::chrono::high_resolution_clock::now();
-	vector<Instance> insts(m_options.thread);
+	vector<string> strLine;
+	vector<vector<vector<string> > >  instances(m_options.thread);
 	FILE* is = fopen(m_options.inputFile.c_str(), "r");
 	if (is == NULL) {
 		std::cout << "File Read error: " << m_options.inputFile << std::endl;
@@ -43,18 +45,27 @@ void Classifier::prepare() {
 	int numInstance = 0;
 	Alphabet unsorted_source_vob, unsorted_target_vob;
 	while (true) {
+		int count = 0;
 		for (int idx = 0; idx < m_options.thread; idx++) {
-			insts[idx].clear();
-			insts[idx].read(is);
+			instances[idx].clear();
+			while (!feof(is)) {
+				readline(strLine, is);
+				if (strLine.empty())
+					break;
+				instances[idx].push_back(strLine);
+			}
+			count++;
+			if (feof(is)) break;
 		}
 
 #pragma omp parallel for
-		for (int idx = 0; idx < m_options.thread; idx++) {
-			int sentSize = insts[idx].m_length;
+		for (int idx = 0; idx < count; idx++) {
+			Instance inst;
+			int sentSize = parse_instance(instances[idx], inst);
 			if (sentSize <= 0)continue;
 			vector<string> sources, targets;			
 			for (int idz = 0; idz < sentSize; idz++) {
-				get_features(insts[idx], sources, targets, idz, false);
+				get_features(inst, sources, targets, idz, false);
 			}
 
 #pragma omp critical
@@ -116,7 +127,7 @@ void Classifier::prepare() {
 	bool newfile_succcess = true;
 //#pragma omp parallel for
 	for (int idx = 0; idx < m_options.thread; idx++) {
-		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
+		string cur_feat_file_name = m_options.featFile + obj2string(idx) + ".txt";
 		os[idx] = fopen(cur_feat_file_name.c_str(), "w");
 		if (os[idx] == NULL) {
 			cout << "Writerr::startWriting() open file err: " << cur_feat_file_name << endl;
@@ -133,19 +144,29 @@ void Classifier::prepare() {
 	w2v.m_example_num = 0;
 	is = fopen(m_options.inputFile.c_str(), "r");
 	while (true) {
+		int count = 0;
 		for (int idx = 0; idx < m_options.thread; idx++) {
-			insts[idx].clear();
-			insts[idx].read(is);
+			instances[idx].clear();
+			while (!feof(is)) {
+				readline(strLine, is);
+				if (strLine.empty())
+					break;
+				instances[idx].push_back(strLine);
+			}
+			count++;
+			if (feof(is)) break;
 		}
 
+
 #pragma omp parallel for
-		for (int idx = 0; idx < m_options.thread; idx++) {
-			int sentSize = insts[idx].m_length;
+		for (int idx = 0; idx < count; idx++) {
+			Instance inst;
+			int sentSize = parse_instance(instances[idx], inst);
 			if (sentSize <= 0)continue;
 			vector<string> sources, targets;
 			int example_num = 0;
 			for (int idz = 0; idz < sentSize; idz++) {
-				get_features(insts[idx], sources, targets, idz, true);
+				get_features(inst, sources, targets, idz, true);
 
 				vector<int> sourceIds;
 				bool source_valid = false;			
@@ -157,9 +178,9 @@ void Classifier::prepare() {
 				}
 				if (!source_valid)continue;
 
-				string source_output = to_string((long long)sourceIds[0]);
+				string source_output = obj2string(sourceIds[0]);
 				for (int idk = 1; idk < sources.size(); idk++) {
-					source_output = source_output + "\t" + to_string((long long)sourceIds[idk]);
+					source_output = source_output + "\t" + obj2string(sourceIds[idk]);
 				}
 
 				for (int idk = 0; idk < targets.size(); idk++) {
@@ -222,7 +243,7 @@ void Classifier::train() {
 
 void Classifier::finish() {
 	for (int idx = 0; idx < m_options.thread; idx++) {
-		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
+		string cur_feat_file_name = m_options.featFile + obj2string(idx) + ".txt";
 		remove(cur_feat_file_name.c_str());
 	}
 }
@@ -236,7 +257,7 @@ void Classifier::get_features(const Instance& inst, vector<string>& sources, vec
 	int sentSize = inst.size();
 	for (int idy = pos - m_options.context; idy < pos + m_options.context; idy++) {
 		if (idy == pos) continue;
-		string featmark = "F@" + to_string((long long)(idy - pos));
+		string featmark = "F@" + obj2string(idy - pos);
 		string featvalue = "";
 		if (idy < 0 || idy >= sentSize) featvalue = "</s>";
 		else featvalue = inst.m_words[idy];
@@ -244,6 +265,20 @@ void Classifier::get_features(const Instance& inst, vector<string>& sources, vec
 	}
 }
 
+int Classifier::parse_instance(const vector<vector<string> >& inputs, Instance& inst) {
+	int sentSize = inputs.size();
+	if (sentSize == 0) return 0;
+	int unitsize = inputs[0].size() - 1;
+	inst.allocate(sentSize, unitsize);
+	for (int i = 0; i < sentSize; i++) {
+		inst.m_words[i] = inputs[i][0];
+		for (int idz = 0; idz < unitsize; idz++) {
+			inst.m_labels[i][idz] = inputs[i][idz + 1];
+		}
+	}
+
+	return sentSize;
+}
 
 int main(int argc, char* argv[]) {
     std::string optionFile = "";
@@ -259,5 +294,7 @@ int main(int argc, char* argv[]) {
 	classifier.prepare();
 	classifier.train();
 	classifier.finish();
+
+	//getchar();
 
 }

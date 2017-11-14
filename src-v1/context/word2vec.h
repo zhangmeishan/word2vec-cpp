@@ -38,6 +38,7 @@ class Classifier {
 	void finish();
 
 private:
+	int parse_instance(const vector<vector<string> >& inputs, Instance& inst);
 	void get_features(const Instance& inst, vector<string>& sources, vector<string>& targets, int pos, bool clear);
 
 };

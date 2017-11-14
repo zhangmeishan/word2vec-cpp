@@ -47,50 +47,9 @@ class Example{
 		}*/
 	
 		int read(FILE *fin) {
-			sourceId = targetId = -1;
-
-			int  ch = 0;
-			while (!feof(fin)) {
-				ch = fgetc(fin);
-				if (ch >= '0' && ch <= '9') {
-					break;
-				}
+			if (fscanf(fin, "%d\t%d", &sourceId, &targetId) == EOF) {
+				return -1;
 			}
-
-			if (ch >= '0' && ch <= '9') {
-				sourceId = ch - '0';
-				while (!feof(fin)) {
-					ch = fgetc(fin);
-					if (ch >= '0' && ch <= '9') {
-						sourceId = sourceId * 10 + (ch - '0');
-					}
-					else {
-						break;
-					}
-				}
-			}
-			
-			while (!feof(fin)) {
-				ch = fgetc(fin);
-				if (ch >= '0' && ch <= '9') {
-					break;
-				}
-			}
-			if (ch >= '0' && ch <= '9') {
-				targetId = ch - '0';
-				while (!feof(fin)) {
-					ch = fgetc(fin);
-					if (ch >= '0' && ch <= '9') {
-						targetId = targetId * 10 + (ch - '0');
-					}
-					else {
-						break;
-					}
-				}
-			}
-
-			if (feof(fin))return -1;
-
 			return 0;
 		}
 	

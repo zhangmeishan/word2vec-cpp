@@ -33,10 +33,10 @@ const static dtype d_one = 1.0;
 const static string nullkey = "-NULL-";
 const static string unknownkey = "-UNKNOWN-";
 const static string seperateKey = "#";
-const static int max_sent_length = 256;
-const static int max_word_length = 32;
-const static int max_feat_length = 64;
-const static int max_spell_length = 32;
+const static int max_length = 512;
+const static int max_word_length = 16;
+const static int max_stroke_length = 64;
+const static int max_spell_length = 16;
 const static string path_separator =
 #ifdef _WIN32
     "\\";

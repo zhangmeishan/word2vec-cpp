@@ -1,0 +1,13 @@
+#dropProb = 0.5
+inputFile = data/giga.ctb.conll
+featFile = data/ctb.feat
+maxIter = 3
+maxInstance = -1
+outputSFile = data/ctb.model
+outputTFile = data/ctb.feat.model
+embSize = 200
+verboseIter = 100000
+#blockSize = 240
+thread = 24
+
+
