@@ -27,12 +27,12 @@ class Options {
     int thread;
     dtype sample;
     int context;
+    bool conll;
 
     dtype initRange;
     dtype regParameter;
     dtype dropProb;
     bool wordEmbFineTune;
-    bool seg;
     int no_use_blockSize;
 
     //embedding files
@@ -53,13 +53,13 @@ class Options {
         thread = 2;
         sample = 0.001;
         context = 2;
+        conll = false;
 
         initRange = 0.01;
         regParameter = 1e-8;
         dropProb = 0.0;
         no_use_blockSize = 100;
         wordEmbFineTune = true;
-        seg = false;
         wordFile = "";
     }
 
@@ -100,6 +100,8 @@ class Options {
                 sample = atof(pr.second.c_str());
             if (pr.first == "context")
                 context = atoi(pr.second.c_str());
+            if (pr.first == "conll")
+                conll = (pr.second == "true") ? true : false;
 
 
             if (pr.first == "regParameter")
@@ -110,8 +112,6 @@ class Options {
                 wordEmbFineTune = (pr.second == "true") ? true : false;
             if (pr.first == "initRange")
                 initRange = atof(pr.second.c_str());
-            if (pr.first == "seg")
-                seg = (pr.second == "true") ? true : false;
             if (pr.first == "wordFile")
                 wordFile = pr.second;
             if (pr.first == "no_use_blockSize")
@@ -134,13 +134,13 @@ class Options {
         std::cout << "thread = " << thread << std::endl;
         std::cout << "sample = " << sample << std::endl;
         std::cout << "context = " << context << std::endl;
+        std::cout << "conll = " << conll << std::endl;
 
         std::cout << "wordEmbFineTune = " << wordEmbFineTune << std::endl;
         std::cout << "regParameter = " << regParameter << std::endl;
         std::cout << "dropProb = " << dropProb << std::endl;
         std::cout << "initRange = " << initRange << std::endl;
         std::cout << "saveItermediate = " << outputSFile << std::endl;
-        std::cout << "seg = " << seg << std::endl;
         std::cout << "wordFile = " << wordFile << std::endl;
         std::cout << "no_use_blockSize = " << no_use_blockSize << std::endl;
     }

@@ -45,7 +45,7 @@ void Classifier::prepare() {
 	while (true) {
 		for (int idx = 0; idx < m_options.thread; idx++) {
 			insts[idx].clear();
-			insts[idx].read(is);
+			insts[idx].read(is, m_options.conll);
 		}
 
 #pragma omp parallel for
@@ -135,7 +135,7 @@ void Classifier::prepare() {
 	while (true) {
 		for (int idx = 0; idx < m_options.thread; idx++) {
 			insts[idx].clear();
-			insts[idx].read(is);
+			insts[idx].read(is, m_options.conll);
 		}
 
 #pragma omp parallel for
