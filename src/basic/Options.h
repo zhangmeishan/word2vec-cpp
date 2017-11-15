@@ -27,7 +27,7 @@ class Options {
     int thread;
     dtype sample;
     int context;
-    bool conll;
+    int conll;
 
     dtype initRange;
     dtype regParameter;
@@ -53,7 +53,7 @@ class Options {
         thread = 2;
         sample = 0.001;
         context = 2;
-        conll = false;
+        conll = 0; //0, denotes normal; 1 denotes conll; 2 denotes feature pair already (one line one pair)
 
         initRange = 0.01;
         regParameter = 1e-8;
@@ -101,7 +101,8 @@ class Options {
             if (pr.first == "context")
                 context = atoi(pr.second.c_str());
             if (pr.first == "conll")
-                conll = (pr.second == "true") ? true : false;
+                conll = atoi(pr.second.c_str());
+            if (conll > 2 || conll < 0) conll = 0;
 
 
             if (pr.first == "regParameter")

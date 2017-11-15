@@ -17,11 +17,13 @@ class Instance {
         return m_length;
     }
 
-    int read(FILE *fin, bool bConll) {
-        if (bConll) {
+    int read(FILE *fin, int conll) {
+        if (conll == 1) {
             return readConll(fin);
-        } else {
+        } else if(conll == 0) {
             return readNormal(fin);
+        } else {
+            return readFeat(fin);
         }
     }
 
@@ -50,31 +52,6 @@ class Instance {
         return m_length;
     }
 
-    int readline(int pos, FILE *fin) {
-        int idx = 0, idy = 0, ch;
-        while (!feof(fin)) {
-            ch = fgetc(fin);
-            if ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r')) {
-                if (idy > 0) {
-                    if (idx == 0)m_words[pos][idy] = 0;
-                    else m_labels[pos][idx - 1][idy] = 0;
-                    idx++;
-                    if (idx == max_feat_length + 1)idx--;
-                }
-                idy = 0;
-                if ((ch == '\n'))break;
-                else continue;
-            }
-            if (idx == 0)m_words[pos][idy] = ch;
-            else m_labels[pos][idx - 1][idy] = ch;
-            idy++;
-            if (idy >= max_word_length - 2) idy--;
-        }
-
-        if (idx > 0 && m_col < 0) m_col = idx;
-
-        return idx;
-    }
 
     //input file formart: each instance is expressed by one line
     //word1_feat11_feat12 word2_feat12_feat12  ...
@@ -118,6 +95,42 @@ class Instance {
 
 
         return m_length;
+    }
+
+    int readFeat(FILE *fin) {
+        m_length = 0;
+        m_col = readline(m_length, fin);
+        if (m_col > 0) {
+            m_length++;
+        }
+        return m_length;
+    }
+
+
+    int readline(int pos, FILE *fin) {
+        int idx = 0, idy = 0, ch;
+        while (!feof(fin)) {
+            ch = fgetc(fin);
+            if ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r')) {
+                if (idy > 0) {
+                    if (idx == 0)m_words[pos][idy] = 0;
+                    else m_labels[pos][idx - 1][idy] = 0;
+                    idx++;
+                    if (idx == max_feat_length + 1)idx--;
+                }
+                idy = 0;
+                if ((ch == '\n'))break;
+                else continue;
+            }
+            if (idx == 0)m_words[pos][idy] = ch;
+            else m_labels[pos][idx - 1][idy] = ch;
+            idy++;
+            if (idy >= max_word_length - 2) idy--;
+        }
+
+        if (idx > 0 && m_col < 0) m_col = idx;
+
+        return idx;
     }
 
   public:
