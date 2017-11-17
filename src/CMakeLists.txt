@@ -4,3 +4,4 @@ include_directories(
 )
 
 add_subdirectory(context)
+add_subdirectory(chnword)

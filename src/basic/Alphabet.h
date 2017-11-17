@@ -44,7 +44,7 @@ class basic_quark {
         clear();
         m_reduce_threshold = 1;
         m_max_size = 2000000000;
-        //m_max_size = 100000;
+        //m_max_size = 1000000;
     }
 
     /**

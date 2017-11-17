@@ -71,7 +71,9 @@ inline int getCharactersFromUTF8String(const std::string &s, std::vector<string>
     sentence.clear();
     unsigned long int idx = 0;
     unsigned long int len = 0;
+    unsigned long int last = 0;
     while (idx < s.length()) {
+        last = idx;
         if ((s[idx] & 0x80) == 0) {
             sentence.push_back(s.substr(idx, 1));
             ++len;
@@ -96,13 +98,15 @@ inline int getCharactersFromUTF8String(const std::string &s, std::vector<string>
             }
         }
     }
-    if (idx != s.length()) {
+    if (idx > s.length()) {
+        sentence[len - 1] = s.substr(last);
         //std::cerr << "Warning: " << "in utf.h getCharactersFromUTF8String: std::string '" << s << "' not encoded in utf-8" << std::endl;
-        return len+1;
+        return len;
     }
 
     return len;
 }
+
 
 /*----------------------------------------------------------------
  *

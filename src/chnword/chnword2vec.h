@@ -10,11 +10,12 @@
 
 
 #include "Options.h"
-#include "Pipe.h"
+#include "Instance.h"
 #include "Utf.h"
 #include "NRMat.h"
 #include "Alphabet.h"
-#include "Model.h"
+#include "Driver.h"
+#include "SExample.h"
 
 using namespace nr;
 using namespace std;
@@ -27,17 +28,18 @@ class Classifier {
 
   public:
     Options m_options;
-    Pipe m_pipe;
 
-    Model w2v;
+    Driver w2v;
 
   public:
-    void extractFeat();
     void init(const string& optionFile);
 
     void prepare();
     void train();
-    void train(int threads);
+    void finish();
+
+  private:
+    void get_sexamples(const Instance& inst, vector<SExample>& sexams);
 
 };
 
