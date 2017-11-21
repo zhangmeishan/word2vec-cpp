@@ -39,7 +39,7 @@ class Classifier {
     void finish();
 
   private:
-	void get_sexamples(const Instance& inst, vector<SExample>& sexams);
+    void get_sexamples(const Instance& inst, vector<SExample>& sexams);
 
 };
 

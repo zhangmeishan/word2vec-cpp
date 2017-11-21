@@ -29,8 +29,8 @@ class Options {
     int context;
     int conll;
 
-    dtype initRange;
-    dtype regParameter;
+    int mingram;
+    int maxgram;
     dtype dropProb;
     bool wordEmbFineTune;
     int no_use_blockSize;
@@ -54,9 +54,10 @@ class Options {
         sample = 0.001;
         context = 2;
         conll = 0; //0, denotes normal; 1 denotes conll; 2 denotes feature pair already (one line one pair)
+		mingram = 1; //for chinese 1, english 3;
+		maxgram = 3; //for chinese 3, english 3;
 
-        initRange = 0.01;
-        regParameter = 1e-8;
+
         dropProb = 0.0;
         no_use_blockSize = 100;
         wordEmbFineTune = true;
@@ -103,16 +104,16 @@ class Options {
             if (pr.first == "conll")
                 conll = atoi(pr.second.c_str());
             if (conll > 2 || conll < 0) conll = 0;
+			if (pr.first == "mingram")
+				mingram = atoi(pr.second.c_str());
+			if (pr.first == "maxgram")
+				maxgram = atoi(pr.second.c_str());
 
 
-            if (pr.first == "regParameter")
-                regParameter = atof(pr.second.c_str());
             if (pr.first == "dropProb")
                 dropProb = atof(pr.second.c_str());
             if (pr.first == "wordEmbFineTune")
                 wordEmbFineTune = (pr.second == "true") ? true : false;
-            if (pr.first == "initRange")
-                initRange = atof(pr.second.c_str());
             if (pr.first == "wordFile")
                 wordFile = pr.second;
             if (pr.first == "no_use_blockSize")
@@ -136,11 +137,11 @@ class Options {
         std::cout << "sample = " << sample << std::endl;
         std::cout << "context = " << context << std::endl;
         std::cout << "conll = " << conll << std::endl;
+		std::cout << "maxgram = " << maxgram << std::endl;
+		std::cout << "mingram = " << mingram << std::endl;
 
         std::cout << "wordEmbFineTune = " << wordEmbFineTune << std::endl;
-        std::cout << "regParameter = " << regParameter << std::endl;
         std::cout << "dropProb = " << dropProb << std::endl;
-        std::cout << "initRange = " << initRange << std::endl;
         std::cout << "saveItermediate = " << outputSFile << std::endl;
         std::cout << "wordFile = " << wordFile << std::endl;
         std::cout << "no_use_blockSize = " << no_use_blockSize << std::endl;

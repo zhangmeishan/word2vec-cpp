@@ -19,8 +19,36 @@ class Example {
     }
 
   public:
+    /*
+    int read(std::ifstream &inf){
+
+    	//string strLine;
+    	//if (!my_getline(inf, strLine)) {
+    	//	return -1;
+    	//}
+    	//vector<string> units;
+    	//split_bychar(strLine, units, '\t');
+    	//if(units.size() == 2){
+    	//	sourceId = atoi(units[0].c_str());
+    	//	targetId = atoi(units[1].c_str());
+    	//}
+    	//else{
+    	//	sourceId = targetId = -1;
+    	//}
+
+    	//return 0;
+
+
+    	if (inf >> sourceId >> targetId) {
+    		return 0;
+    	}
+    	return -1;
+
+    }*/
+
     int read(FILE *fin) {
         sourceId = targetId = -1;
+
         int  ch = 0;
         while (!feof(fin)) {
             ch = fgetc(fin);
@@ -63,10 +91,6 @@ class Example {
 
         return 0;
     }
-
-	void write(FILE *fout) {
-		fprintf(fout, "%d\t%d\n", sourceId, targetId);
-	}
 
 };
 

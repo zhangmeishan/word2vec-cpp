@@ -15,7 +15,6 @@
 #include "NRMat.h"
 #include "Alphabet.h"
 #include "Driver.h"
-#include "SExample.h"
 
 using namespace nr;
 using namespace std;
@@ -39,7 +38,7 @@ class Classifier {
     void finish();
 
   private:
-	void get_sexamples(const Instance& inst, vector<SExample>& sexams);
+    void get_features(const Instance& inst, vector<string>& sources, vector<string>& targets, int pos, bool clear);
 
 };
 

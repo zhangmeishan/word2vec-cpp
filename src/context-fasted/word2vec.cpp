@@ -40,7 +40,6 @@ void Classifier::prepare() {
 		std::cout << "File Read error: " << m_options.inputFile << std::endl;
 		return;
 	}
-
 	int numInstance = 0;
 	Alphabet unsorted_source_vob, unsorted_target_vob;
 	while (true) {
@@ -53,14 +52,18 @@ void Classifier::prepare() {
 		for (int idx = 0; idx < m_options.thread; idx++) {
 			int sentSize = insts[idx].m_length;
 			if (sentSize <= 0)continue;
-			vector<SExample> sexams;
-			get_sexamples(insts[idx], sexams);
+			vector<string> sources, targets;			
+			for (int idz = 0; idz < sentSize; idz++) {
+				get_features(insts[idx], sources, targets, idz, false);
+			}
 
 #pragma omp critical
 			{
-				for (int idz = 0; idz < sexams.size(); idz++) {
-					unsorted_source_vob.add_string(sexams[idz].source);
-					unsorted_target_vob.add_string(sexams[idz].target);
+				for (int idz = 0; idz < sources.size(); idz++) {
+					unsorted_source_vob.add_string(sources[idz]);
+				}
+				for (int idz = 0; idz < targets.size(); idz++) {
+					unsorted_target_vob.add_string(targets[idz]);
 				}
 
 				numInstance++;
@@ -111,7 +114,7 @@ void Classifier::prepare() {
 	std::cout << "Starting building examples...." << std::endl;
 	vector<FILE*> os(m_options.thread);
 	bool newfile_succcess = true;
-	//#pragma omp parallel for
+//#pragma omp parallel for
 	for (int idx = 0; idx < m_options.thread; idx++) {
 		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
 		os[idx] = fopen(cur_feat_file_name.c_str(), "w");
@@ -139,18 +142,34 @@ void Classifier::prepare() {
 		for (int idx = 0; idx < m_options.thread; idx++) {
 			int sentSize = insts[idx].m_length;
 			if (sentSize <= 0)continue;
-			vector<SExample> sexams;
+			vector<string> sources, targets;
 			int example_num = 0;
-			get_sexamples(insts[idx], sexams);
-			for (int idk = 0; idk < sexams.size(); idk++) {
-				int source_id = source_vob[sexams[idk].source];
-				int target_id = target_vob[sexams[idk].target];
-				if (target_id == -1)continue;
-				//(*os[idx]) << source_output << "\t" << target_id << std::endl;
-				fprintf(os[idx], "%d\t%d\n", source_id, target_id);
-				example_num++;
-			}
+			for (int idz = 0; idz < sentSize; idz++) {
+				get_features(insts[idx], sources, targets, idz, true);
 
+				vector<int> sourceIds;
+				bool source_valid = false;			
+				for (int idk = 0; idk < sources.size(); idk++) {
+					int source_id = source_vob[sources[idk]];
+					sourceIds.push_back(source_id);
+					if (source_id >= 0)source_valid = true;
+					
+				}
+				if (!source_valid)continue;
+
+				string source_output = to_string((long long)sourceIds[0]);
+				for (int idk = 1; idk < sources.size(); idk++) {
+					source_output = source_output + "\t" + to_string((long long)sourceIds[idk]);
+				}
+
+				for (int idk = 0; idk < targets.size(); idk++) {
+					int target_id = target_vob[targets[idk]];
+					if (target_id == -1)continue;
+					//(*os[idx]) << source_output << "\t" << target_id << std::endl;
+					fprintf(os[idx], "%s\t%d\n", source_output.c_str(), target_id);
+					example_num++;
+				}
+			}
 
 #pragma omp critical
 			{
@@ -182,7 +201,7 @@ void Classifier::prepare() {
 	cout << "Total example num: " << w2v.m_example_num << endl;
 	std::cout << "Collapsed time: " << std::chrono::duration<dtype>(std::chrono::high_resolution_clock::now() - start_time).count() << std::endl;
 
-	//#pragma omp parallel for
+//#pragma omp parallel for
 	for (int idx = 0; idx < m_options.thread; idx++) {
 		fclose(os[idx]);
 	}
@@ -203,27 +222,25 @@ void Classifier::train() {
 
 void Classifier::finish() {
 	for (int idx = 0; idx < m_options.thread; idx++) {
-		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".id";
+		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
 		remove(cur_feat_file_name.c_str());
 	}
 }
 
-void Classifier::get_sexamples(const Instance& inst, vector<SExample>& sexams) {
-	sexams.clear();
+void Classifier::get_features(const Instance& inst, vector<string>& sources, vector<string>& targets, int pos, bool clear) {
+	if (clear) {
+		sources.clear();
+		targets.clear();
+	}
+	sources.push_back(inst.m_words[pos]);
 	int sentSize = inst.size();
-	vector<string> chnchars;
-	SExample exam;
-	for (int idy = 0; idy < sentSize; idy++) {
-		exam.source = inst.m_words[idy];
-		for (int idz = idy - m_options.context; idz <= idy + m_options.context; idz++) {
-			if (idz == idy) continue;
-			string featmark = "F@" + to_string((long long)(idz - idy));
-			string featvalue = "";
-			if (idz < 0 || idz >= sentSize) featvalue = "</s>";
-			else featvalue = inst.m_words[idz];
-			exam.target = featmark + "=" + featvalue;
-			sexams.push_back(exam);
-		}
+	for (int idy = pos - m_options.context; idy < pos + m_options.context; idy++) {
+		if (idy == pos) continue;
+		string featmark = "F@" + to_string((long long)(idy - pos));
+		string featvalue = "";
+		if (idy < 0 || idy >= sentSize) featvalue = "</s>";
+		else featvalue = inst.m_words[idy];
+		targets.push_back(featmark + "=" + featvalue);
 	}
 }
 

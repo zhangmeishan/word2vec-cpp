@@ -5,10 +5,11 @@
  *      Author: mszhang
  */
 
-#include "word2vec.h"
+#include "subword2vec.h"
 #include <chrono>
 #include <omp.h>
 #include "Argument_helper.h"
+#include "Utf.h"
 
 Classifier::Classifier() {
     // TODO Auto-generated constructor stub
@@ -40,7 +41,6 @@ void Classifier::prepare() {
 		std::cout << "File Read error: " << m_options.inputFile << std::endl;
 		return;
 	}
-
 	int numInstance = 0;
 	Alphabet unsorted_source_vob, unsorted_target_vob;
 	while (true) {
@@ -53,13 +53,15 @@ void Classifier::prepare() {
 		for (int idx = 0; idx < m_options.thread; idx++) {
 			int sentSize = insts[idx].m_length;
 			if (sentSize <= 0)continue;
-			vector<SExample> sexams;
+			vector<SExample> sexams;			
 			get_sexamples(insts[idx], sexams);
 
 #pragma omp critical
 			{
 				for (int idz = 0; idz < sexams.size(); idz++) {
-					unsorted_source_vob.add_string(sexams[idz].source);
+					for (int idk = 0; idk < sexams[idz].source.size(); idk++) {
+						unsorted_source_vob.add_string(sexams[idz].source[idk]);
+					}
 					unsorted_target_vob.add_string(sexams[idz].target);
 				}
 
@@ -111,7 +113,7 @@ void Classifier::prepare() {
 	std::cout << "Starting building examples...." << std::endl;
 	vector<FILE*> os(m_options.thread);
 	bool newfile_succcess = true;
-	//#pragma omp parallel for
+//#pragma omp parallel for
 	for (int idx = 0; idx < m_options.thread; idx++) {
 		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
 		os[idx] = fopen(cur_feat_file_name.c_str(), "w");
@@ -142,12 +144,20 @@ void Classifier::prepare() {
 			vector<SExample> sexams;
 			int example_num = 0;
 			get_sexamples(insts[idx], sexams);
-			for (int idk = 0; idk < sexams.size(); idk++) {
-				int source_id = source_vob[sexams[idk].source];
-				int target_id = target_vob[sexams[idk].target];
-				if (target_id == -1)continue;
+			for (int idz = 0; idz < sexams.size(); idz++) {
+				string outsource = "";
+				int source_valid_count = 0;
+				for (int idk = 0; idk < sexams[idz].source.size(); idk++) {
+					int source_id = source_vob[sexams[idz].source[idk]];
+					if (source_id >= 0) {
+						source_valid_count++;
+						outsource = outsource + to_string((long long)source_id) + "\t";
+					}
+				}
+				int target_id = target_vob[sexams[idz].target];
+				if (source_valid_count < 1 ||target_id == -1)continue;
 				//(*os[idx]) << source_output << "\t" << target_id << std::endl;
-				fprintf(os[idx], "%d\t%d\n", source_id, target_id);
+				fprintf(os[idx], "%s%d\n", outsource.c_str(), target_id);
 				example_num++;
 			}
 
@@ -182,7 +192,7 @@ void Classifier::prepare() {
 	cout << "Total example num: " << w2v.m_example_num << endl;
 	std::cout << "Collapsed time: " << std::chrono::duration<dtype>(std::chrono::high_resolution_clock::now() - start_time).count() << std::endl;
 
-	//#pragma omp parallel for
+//#pragma omp parallel for
 	for (int idx = 0; idx < m_options.thread; idx++) {
 		fclose(os[idx]);
 	}
@@ -203,7 +213,7 @@ void Classifier::train() {
 
 void Classifier::finish() {
 	for (int idx = 0; idx < m_options.thread; idx++) {
-		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".id";
+		string cur_feat_file_name = m_options.featFile + to_string((long long)idx) + ".txt";
 		remove(cur_feat_file_name.c_str());
 	}
 }
@@ -213,8 +223,28 @@ void Classifier::get_sexamples(const Instance& inst, vector<SExample>& sexams) {
 	int sentSize = inst.size();
 	vector<string> chnchars;
 	SExample exam;
-	for (int idy = 0; idy < sentSize; idy++) {
-		exam.source = inst.m_words[idy];
+	for (int idy = 0; idy < sentSize; idy++) {		
+		string curword = inst.m_words[idy];
+		int wordlen = getCharactersFromUTF8String(curword, chnchars);
+		exam.source.clear();
+
+		int ngram = m_options.mingram;
+		chnchars.insert(chnchars.begin(), "<");
+		chnchars.push_back(">");
+		int charsize = chnchars.size();
+		while (ngram <= m_options.maxgram) {
+			for (int idz = 0; idz <= charsize - ngram; idz++) {
+				string featValue = "S@"+ to_string((long long)ngram) + "#";
+				for (int c = idz; c < idz + ngram; c++) {
+					featValue = featValue + chnchars[c];
+				}
+				exam.source.push_back(featValue);
+			}
+			ngram++;
+		}
+
+		exam.source.push_back("W@"+ curword);
+
 		for (int idz = idy - m_options.context; idz <= idy + m_options.context; idz++) {
 			if (idz == idy) continue;
 			string featmark = "F@" + to_string((long long)(idz - idy));
@@ -224,6 +254,8 @@ void Classifier::get_sexamples(const Instance& inst, vector<SExample>& sexams) {
 			exam.target = featmark + "=" + featvalue;
 			sexams.push_back(exam);
 		}
+
+
 	}
 }
 
